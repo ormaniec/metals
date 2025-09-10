@@ -2,25 +2,28 @@ package scala.meta.internal.metals
 
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
-import java.util as ju
+import java.{util => ju}
+
 import scala.build.bsp.WrappedSourceItem
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.CollectionConverters.*
+import scala.collection.parallel.CollectionConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.Future
 import scala.util.control.NonFatal
+
 import scala.meta.Dialect
-import scala.meta.dialects.*
+import scala.meta.dialects._
 import scala.meta.inputs.Input
 import scala.meta.internal.bsp.BspSession
 import scala.meta.internal.builds.WorkspaceReload
-import scala.meta.internal.metals.MetalsEnrichments.*
+import scala.meta.internal.metals.MetalsEnrichments._
 import scala.meta.internal.mtags.IndexingResult
-import scala.meta.internal.semanticdb.Scala.*
+import scala.meta.internal.semanticdb.Scala._
 import scala.meta.io.AbsolutePath
-import ch.epfl.scala.bsp4j as b
+
+import ch.epfl.scala.{bsp4j => b}
 import com.google.gson.JsonObject
 import org.eclipse.lsp4j.Position
 
