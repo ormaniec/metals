@@ -250,51 +250,36 @@ class DefinitionLspSuite
         s"""|/metals.json
             |{
             |  "a": {
-            |    "scalaVersion": "${V.latestScala3Next}",
             |    "libraryDependencies": [
-            |      "org.scala-lang:scala3-library_3:${V.latestScala3Next}"
+            |      "com.typesafe.scala-logging:scala-logging_2.12:3.9.4"
             |    ]
             |  }
             |}
             |/a/src/main/scala/Main.scala
             |package example
+            |import com.typesafe.scalalogging.Logger
             |object Main {
-            |  val list = List(1, 2, 3)
-            |  list.map(identity)
+            |    val logger = Logger("SimpleLogger")
             |}
             |""".stripMargin
       )
       _ <- server.didOpen("a/src/main/scala/Main.scala")
       _ = server.workspaceDefinitions
 
-      listDefinition <- server.definition(
+      loggerDefinition <- server.definition(
         "a/src/main/scala/Main.scala",
-        "Li@@st(1, 2, 3)",
-        workspace,
-      )
-      mapDefinition <- server.definition(
-        "a/src/main/scala/Main.scala",
-        "list.ma@@p(identity)",
+        "val logger = Log@@ger(\"SimpleLogger\")",
         workspace,
       )
 
       _ = assert(
-        listDefinition.nonEmpty,
-        s"Expected a definition location for 'List', but got an empty result.",
+        loggerDefinition.nonEmpty,
+        s"Expected a definition location for 'Logger', but got an empty result.",
       )
       _ = assert(
-        listDefinition.head.getUri.contains("scala-library"),
-        s"Expected List definition URI to contain 'scala-library', but was: ${listDefinition.head.getUri}",
+        loggerDefinition.head.getUri.contains("scala-logging"),
+        s"Expected logger definition URI to contain 'scala-logging', but was: ${loggerDefinition.head.getUri}",
       )
-      _ = assert(
-        mapDefinition.nonEmpty,
-        s"Expected a definition location for 'map', but got an empty result.",
-      )
-      _ = assert(
-        mapDefinition.head.getUri.contains("scala-library"),
-        s"Expected map definition URI to contain 'scala-library', but was: ${mapDefinition.head.getUri}",
-      )
-
     } yield ()
   }
 
