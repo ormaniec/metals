@@ -479,10 +479,93 @@ class BazelLspSuite
 
   test("goto-definition-into-dependency-sources") {
     cleanWorkspace()
-    val layout = BazelBuildLayout(
+    val bazelVersion =
+      s"""|/.bazelversion
+          |6.4.0
+          |""".stripMargin
+
+    val workspaceFile =
+      """|/WORKSPACE
+         |# WORKSPACE
+         |load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+         |
+         |http_archive(
+         |    name = "bazel_skylib",
+         |    sha256 = "b8a1527901774180afc798aeb28c4634bdccf19c4d98e7bdd1ce79d1fe9aaad7",
+         |    urls = [
+         |        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+         |        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+         |    ],
+         |)
+         |
+         |# See https://github.com/bazelbuild/rules_scala/releases for up to date version information.
+         |http_archive(
+         |    name = "io_bazel_rules_scala",
+         |    sha256 = "3b00fa0b243b04565abb17d3839a5f4fa6cc2cac571f6db9f83c1982ba1e19e5",
+         |    strip_prefix = "rules_scala-6.5.0",
+         |    url = "https://github.com/bazelbuild/rules_scala/releases/download/v6.5.0/rules_scala-v6.5.0.tar.gz",
+         |)
+         |
+         |load("@io_bazel_rules_scala//:scala_config.bzl", "scala_config")
+         |# Stores Scala version and other configuration
+         |# 2.12 is a default version, other versions can be use by passing them explicitly:
+         |# scala_config(scala_version = "2.11.12")
+         |# Scala 3 requires extras...
+         |#   3.2 should be supported on master. Please note that Scala artifacts for version (3.2.2) are not defined in
+         |#   Rules Scala, they need to be provided by your WORKSPACE. You can use external loader like
+         |#   https://github.com/bazelbuild/rules_jvm_external
+         |scala_config(scala_version = "2.12.18")
+         |
+         |load("@io_bazel_rules_scala//scala:scala.bzl", "rules_scala_setup", "rules_scala_toolchain_deps_repositories")
+         |
+         |# loads other rules Rules Scala depends on
+         |rules_scala_setup()
+         |
+         |# Loads Maven deps like Scala compiler and standard libs. On production projects you should consider
+         |# defining a custom deps toolchains to use your project libs instead
+         |rules_scala_toolchain_deps_repositories(fetch_sources = True)
+         |
+         |load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+         |rules_proto_dependencies()
+         |rules_proto_toolchains()
+         |
+         |load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_toolchains")
+         |scala_register_toolchains()
+         |
+         |load("@io_bazel_rules_scala//testing:specs2_junit.bzl", "specs2_junit_repositories", "specs2_junit_toolchain")
+         |specs2_junit_repositories()
+         |specs2_junit_toolchain()
+         |
+         |register_toolchains(
+         |    "//:semanticdb_toolchain",
+         |)
+         |
+         |http_archive(
+         |    name = "rules_jvm_external",
+         |    sha256 = "6274687f6fc5783b589f56a2f1ed60de3ce1f99bc4e8f9edef3de43bdf7c6e74",
+         |    strip_prefix = "rules_jvm_external-4.3",
+         |    url = "https://github.com/bazelbuild/rules_jvm_external/archive/4.3.zip",
+         |)
+         |
+         |load("@rules_jvm_external//:defs.bzl", "maven_install")
+         |
+         |maven_install(
+         |    name = "maven",
+         |    artifacts = [
+         |        "joda-time:joda-time:2.12.5",
+         |        "com.typesafe.scala-logging:scala-logging_2.12:3.9.5",
+         |    ],
+         |    repositories = [
+         |        "https://repo1.maven.org/maven2",
+         |    ],
+         |    fetch_sources = True
+         |)
+         |""".stripMargin
+
+    val buildFiles =
       s"""|/BUILD
+          |load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_specs2_junit_test")
           |load("@io_bazel_rules_scala//scala:scala_toolchain.bzl", "scala_toolchain")
-          |load("@io_bazel_rules_scala//scala:scala.bzl", "scala_binary", "scala_library")
           |
           |scala_toolchain(
           |    name = "semanticdb_toolchain_impl",
@@ -498,23 +581,42 @@ class BazelLspSuite
           |    visibility = ["//visibility:public"],
           |)
           |
-          |scala_binary(
-          |    name = "main",
-          |    srcs = ["Main.scala"],
-          |    main_class = "example.Main",
-          |    deps = ["@maven//:com_typesafe_scala_logging_scala_logging_2_12"],
+          |scala_library(
+          |    name = "calculator",
+          |    srcs = glob(["Main.scala"]),
+          |    visibility = ["//visibility:public"],
+          |    deps = [
+          |        "@maven//:joda_time_joda_time",
+          |        "@maven//:com_typesafe_scala_logging_scala_logging_2_12"
+          |    ],
           |)
           |
-          |/Main.scala
-          |package example
-          |import com.typesafe.scalalogging.Logger
-          |object Main {
-          |    val logger = Logger("SimpleLogger")
-          |}
-          |""".stripMargin,
-      V.bazelScalaVersion,
-      "8.0.0",
-    )
+          |scala_specs2_junit_test(
+          |    name = "calculator_test",
+          |    srcs = glob(["src/test/scala/**/*.scala"]),
+          |    deps = [
+          |        ":calculator",
+          |    ],
+          |    suffixes = ["Test"],
+          |)
+          |""".stripMargin
+
+    val sourceFiles =
+      s"""
+         |/Main.scala
+         |package example
+         |import com.typesafe.scalalogging.Logger
+         |object Main {
+         |    val logger = Logger("SimpleLogger")
+         |}
+         |""".stripMargin
+
+    val layout =
+      s"""$bazelVersion
+         |$workspaceFile
+         |$buildFiles
+         |$sourceFiles
+         |""".stripMargin
 
     for {
       _ <- initialize(layout)
