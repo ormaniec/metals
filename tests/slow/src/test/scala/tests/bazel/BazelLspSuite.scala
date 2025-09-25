@@ -486,7 +486,6 @@ class BazelLspSuite
 
     val workspaceFile =
       """|/WORKSPACE
-         |# WORKSPACE
          |load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
          |
          |http_archive(
@@ -498,7 +497,6 @@ class BazelLspSuite
          |    ],
          |)
          |
-         |# See https://github.com/bazelbuild/rules_scala/releases for up to date version information.
          |http_archive(
          |    name = "io_bazel_rules_scala",
          |    sha256 = "3b00fa0b243b04565abb17d3839a5f4fa6cc2cac571f6db9f83c1982ba1e19e5",
@@ -507,22 +505,11 @@ class BazelLspSuite
          |)
          |
          |load("@io_bazel_rules_scala//:scala_config.bzl", "scala_config")
-         |# Stores Scala version and other configuration
-         |# 2.12 is a default version, other versions can be use by passing them explicitly:
-         |# scala_config(scala_version = "2.11.12")
-         |# Scala 3 requires extras...
-         |#   3.2 should be supported on master. Please note that Scala artifacts for version (3.2.2) are not defined in
-         |#   Rules Scala, they need to be provided by your WORKSPACE. You can use external loader like
-         |#   https://github.com/bazelbuild/rules_jvm_external
          |scala_config(scala_version = "2.12.18")
          |
          |load("@io_bazel_rules_scala//scala:scala.bzl", "rules_scala_setup", "rules_scala_toolchain_deps_repositories")
          |
-         |# loads other rules Rules Scala depends on
          |rules_scala_setup()
-         |
-         |# Loads Maven deps like Scala compiler and standard libs. On production projects you should consider
-         |# defining a custom deps toolchains to use your project libs instead
          |rules_scala_toolchain_deps_repositories(fetch_sources = True)
          |
          |load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
@@ -531,10 +518,6 @@ class BazelLspSuite
          |
          |load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_toolchains")
          |scala_register_toolchains()
-         |
-         |load("@io_bazel_rules_scala//testing:specs2_junit.bzl", "specs2_junit_repositories", "specs2_junit_toolchain")
-         |specs2_junit_repositories()
-         |specs2_junit_toolchain()
          |
          |register_toolchains(
          |    "//:semanticdb_toolchain",
@@ -552,7 +535,6 @@ class BazelLspSuite
          |maven_install(
          |    name = "maven",
          |    artifacts = [
-         |        "joda-time:joda-time:2.12.5",
          |        "com.typesafe.scala-logging:scala-logging_2.12:3.9.5",
          |    ],
          |    repositories = [
@@ -564,7 +546,7 @@ class BazelLspSuite
 
     val buildFiles =
       s"""|/BUILD
-          |load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_specs2_junit_test")
+          |load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library")
           |load("@io_bazel_rules_scala//scala:scala_toolchain.bzl", "scala_toolchain")
           |
           |scala_toolchain(
@@ -586,29 +568,25 @@ class BazelLspSuite
           |    srcs = glob(["Main.scala"]),
           |    visibility = ["//visibility:public"],
           |    deps = [
-          |        "@maven//:joda_time_joda_time",
           |        "@maven//:com_typesafe_scala_logging_scala_logging_2_12"
           |    ],
           |)
           |
-          |scala_specs2_junit_test(
-          |    name = "calculator_test",
-          |    srcs = glob(["src/test/scala/**/*.scala"]),
-          |    deps = [
-          |        ":calculator",
-          |    ],
-          |    suffixes = ["Test"],
-          |)
           |""".stripMargin
 
     val sourceFiles =
       s"""
          |/Main.scala
-         |package example
          |import com.typesafe.scalalogging.Logger
-         |object Main {
-         |    val logger = Logger("SimpleLogger")
+         |
+         |class Calculator {
+         |  val logger = Logger("SimpleLogger")
+         |
+         |  def add(a: Int, b: Int): Int = a + b
+         |  def subtract(a: Int, b: Int): Int = a - b
+         |  def multiply(a: Int, b: Int): Int = a * b
          |}
+         |
          |""".stripMargin
 
     val layout =
@@ -625,7 +603,17 @@ class BazelLspSuite
 
       loggerDefinition <- server.definition(
         "Main.scala",
-        "val logger = Log@@ger(\"SimpleLogger\")",
+        """import org.joda.time.Instant
+          |import com.typesafe.scalalogging.Log@@ger
+          |
+          |class Calculator {
+          |  val instant = new Instant()
+          |  val logger = Logger("SimpleLogger")
+          |
+          |  def add(a: Int, b: Int): Int = a + b
+          |  def subtract(a: Int, b: Int): Int = a - b
+          |  def multiply(a: Int, b: Int): Int = a * b
+          |}""".stripMargin,
         workspace,
       )
 
