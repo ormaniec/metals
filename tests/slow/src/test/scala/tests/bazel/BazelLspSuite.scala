@@ -477,6 +477,67 @@ class BazelLspSuite
     } yield ()
   }
 
+  test("goto-definition-into-dependency-sources") {
+    cleanWorkspace()
+    val layout = BazelBuildLayout(
+      s"""|/BUILD
+          |load("@io_bazel_rules_scala//scala:scala_toolchain.bzl", "scala_toolchain")
+          |load("@io_bazel_rules_scala//scala:scala.bzl", "scala_binary", "scala_library")
+          |
+          |scala_toolchain(
+          |    name = "semanticdb_toolchain_impl",
+          |    enable_semanticdb = True,
+          |    semanticdb_bundle_in_jar = False,
+          |    visibility = ["//visibility:public"],
+          |)
+          |
+          |toolchain(
+          |    name = "semanticdb_toolchain",
+          |    toolchain = "semanticdb_toolchain_impl",
+          |    toolchain_type = "@io_bazel_rules_scala//scala:toolchain_type",
+          |    visibility = ["//visibility:public"],
+          |)
+          |
+          |scala_binary(
+          |    name = "main",
+          |    srcs = ["Main.scala"],
+          |    main_class = "example.Main",
+          |    deps = ["@maven//:com_typesafe_scala_logging_scala_logging_2_12"],
+          |)
+          |
+          |/Main.scala
+          |package example
+          |import com.typesafe.scalalogging.Logger
+          |object Main {
+          |    val logger = Logger("SimpleLogger")
+          |}
+          |""".stripMargin,
+      V.bazelScalaVersion,
+      "8.0.0",
+    )
+
+    for {
+      _ <- initialize(layout)
+      _ <- server.didOpen("Main.scala")
+      _ = server.workspaceDefinitions
+
+      loggerDefinition <- server.definition(
+        "Main.scala",
+        "val logger = Log@@ger(\"SimpleLogger\")",
+        workspace,
+      )
+
+      _ = assert(
+        loggerDefinition.nonEmpty,
+        s"Expected a definition location for 'Logger', but got an empty result.",
+      )
+      _ = assert(
+        loggerDefinition.head.getUri.contains("scala-logging"),
+        s"Expected logger definition URI to contain 'scala-logging', but was: ${loggerDefinition.head.getUri}",
+      )
+    } yield ()
+  }
+
   private val commonCode =
     """|scala_library(
        |    name = "hello_lib",

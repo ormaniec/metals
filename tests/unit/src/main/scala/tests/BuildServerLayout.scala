@@ -133,6 +133,18 @@ object BazelBuildLayout extends BuildToolLayout {
         |${apply(sourceLayout, scalaVersion)}
         |""".stripMargin
 
+  def apply(
+      bazelVersion: String,
+      workspaceLayout: String,
+      sourceLayout: String,
+  ): String =
+    s"""|/.bazelversion
+        |$bazelVersion
+        |/WORKSPACE
+        |$workspaceLayout
+        |$sourceLayout
+        |""".stripMargin
+
   def workspaceFileLayout(scalaVersion: String): String =
     s"""|# WORKSPACE
         |load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

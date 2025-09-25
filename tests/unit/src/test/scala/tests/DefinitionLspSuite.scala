@@ -243,46 +243,6 @@ class DefinitionLspSuite
     } yield ()
   }
 
-  test("goto-definition-into-dependency-sources") {
-    cleanWorkspace()
-    for {
-      _ <- initialize(
-        s"""|/metals.json
-            |{
-            |  "a": {
-            |    "libraryDependencies": [
-            |      "com.typesafe.scala-logging:scala-logging_2.12:3.9.4"
-            |    ]
-            |  }
-            |}
-            |/a/src/main/scala/Main.scala
-            |package example
-            |import com.typesafe.scalalogging.Logger
-            |object Main {
-            |    val logger = Logger("SimpleLogger")
-            |}
-            |""".stripMargin
-      )
-      _ <- server.didOpen("a/src/main/scala/Main.scala")
-      _ = server.workspaceDefinitions
-
-      loggerDefinition <- server.definition(
-        "a/src/main/scala/Main.scala",
-        "val logger = Log@@ger(\"SimpleLogger\")",
-        workspace,
-      )
-
-      _ = assert(
-        loggerDefinition.nonEmpty,
-        s"Expected a definition location for 'Logger', but got an empty result.",
-      )
-      _ = assert(
-        loggerDefinition.head.getUri.contains("scala-logging"),
-        s"Expected logger definition URI to contain 'scala-logging', but was: ${loggerDefinition.head.getUri}",
-      )
-    } yield ()
-  }
-
   test("stale") {
     for {
       _ <- initialize(
