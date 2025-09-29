@@ -741,6 +741,7 @@ object BuildServerConnection {
       semanticdbVersion: String,
       supportedScalaVersions: java.util.List[String],
       enableBestEffortMode: Boolean,
+      enableLimitedImport: Boolean = false
   )
 
   /**
@@ -758,6 +759,7 @@ object BuildServerConnection {
       BuildInfo.scalametaVersion,
       BuildInfo.supportedScala2Versions.asJava,
       config.enableBestEffort || userConfiguration.enableBestEffort,
+      enableLimitedImport = true
     )
 
     val capabilities = new BuildClientCapabilities(
