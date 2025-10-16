@@ -79,7 +79,6 @@ class ProjectMetalsLspService(
       maxScalaCliServers,
       moduleStatus,
     ) {
-
   scribe.debug(clientConfig.toString())
 
   private val SemanticdbExecutionContext =
@@ -171,6 +170,7 @@ class ProjectMetalsLspService(
     clientConfig.initialConfig,
     workDoneProgress,
     sh,
+    limitedImport,
   )
 
   val connectionProvider: ConnectionProvider = {
@@ -194,6 +194,7 @@ class ProjectMetalsLspService(
       connectionBspStatus,
       mainBuildTargetsData,
       this,
+      limitedImport,
     )
     provider.buildServerPromise.future.onComplete(_ => moduleStatus.refresh())
     provider

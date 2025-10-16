@@ -68,6 +68,7 @@ import scala.meta.tokenizers.TokenizeException
 
 import ch.epfl.scala.bsp4j.CompileReport
 import ch.epfl.scala.{bsp4j => b}
+import com.google.gson.JsonObject
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j._
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
@@ -1557,6 +1558,18 @@ abstract class MetalsLspService(
       target: b.BuildTargetIdentifier
   ): Option[b.BuildTarget] = buildTargets.info(target)
 
+  val limitedImport: List[String] =
+    initializeParams.getInitializationOptions match {
+      case Some(json: JsonObject) =>
+        json
+          .get("limitedImport")
+          .getAsJsonArray
+          .asScala
+          .map(_.getAsString)
+          .toList
+      case _ => List.empty
+    }
+
   val scalaCli: ScalaCliServers = register(
     new ScalaCliServers(
       () => compilers,
@@ -1573,6 +1586,7 @@ abstract class MetalsLspService(
       parseTreesAndPublishDiags,
       buildTargets,
       maxScalaCliServers,
+      limitedImport,
     )
   )
 

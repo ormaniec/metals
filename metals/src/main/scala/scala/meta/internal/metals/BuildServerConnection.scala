@@ -623,6 +623,7 @@ object BuildServerConnection {
       retry: Int = 5,
       supportsWrappedSources: Option[Boolean] = None,
       workDoneProgress: WorkDoneProgress,
+      limitedImport: List[String],
   )(implicit
       ec: ExecutionContextExecutorService
   ): Future[BuildServerConnection] = {
@@ -656,6 +657,7 @@ object BuildServerConnection {
               serverName,
               config,
               userConfiguration,
+              limitedImport,
             )
           } catch {
             case e: TimeoutException =>
@@ -729,6 +731,7 @@ object BuildServerConnection {
             retry - 1,
             supportsWrappedSources,
             workDoneProgress,
+            limitedImport,
           )
         } else {
           Future.failed(e)
@@ -741,7 +744,7 @@ object BuildServerConnection {
       semanticdbVersion: String,
       supportedScalaVersions: java.util.List[String],
       enableBestEffortMode: Boolean,
-      enableLimitedImport: Boolean = false
+      limitedImport: java.util.List[String],
   )
 
   /**
@@ -753,13 +756,14 @@ object BuildServerConnection {
       serverName: String,
       config: MetalsServerConfig,
       userConfiguration: UserConfiguration,
+      limitedImport: List[String],
   ): InitializeBuildResult = {
     val extraParams = BspExtraBuildParams(
       BuildInfo.javaSemanticdbVersion,
       BuildInfo.scalametaVersion,
       BuildInfo.supportedScala2Versions.asJava,
       config.enableBestEffort || userConfiguration.enableBestEffort,
-      enableLimitedImport = true
+      limitedImport.asJava,
     )
 
     val capabilities = new BuildClientCapabilities(

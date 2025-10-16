@@ -47,6 +47,7 @@ class BspConnector(
     currentConnection: () => Option[BuildServerConnection],
     restartBspServer: () => Future[Unit],
     bspStatus: ConnectionBspStatus,
+    limitedImport: List[String],
 )(implicit ec: ExecutionContext) {
 
   /**
@@ -159,6 +160,7 @@ class BspConnector(
                 bspTraceRoot,
                 details,
                 bspStatusOpt,
+                limitedImport,
               )
               _ <-
                 if (shouldReload) connection.workspaceReload()
@@ -182,7 +184,13 @@ class BspConnector(
               regenerateConfig(bsp)
             case _ =>
               bspServers
-                .newServer(projectRoot, bspTraceRoot, details, bspStatusOpt)
+                .newServer(
+                  projectRoot,
+                  bspTraceRoot,
+                  details,
+                  bspStatusOpt,
+                  limitedImport,
+                )
                 .map(Some(_))
           }
 
@@ -226,6 +234,7 @@ class BspConnector(
               bspTraceRoot,
               item,
               bspStatusOpt,
+              limitedImport,
             )
           } yield Some(conn)
         case RegenerateBspConfig =>

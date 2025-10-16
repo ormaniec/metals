@@ -58,6 +58,7 @@ final class BloopServers(
     serverConfig: MetalsServerConfig,
     workDoneProgress: WorkDoneProgress,
     sh: ScheduledExecutorService,
+    limitedImport: List[String],
 )(implicit ec: ExecutionContextExecutorService) {
 
   import BloopServers._
@@ -110,6 +111,7 @@ final class BloopServers(
         name,
         bspStatusOpt,
         workDoneProgress = workDoneProgress,
+        limitedImport = limitedImport,
       )
       .recover { case NonFatal(e) =>
         Try(

@@ -61,6 +61,7 @@ class ScalaCli(
     userConfig: () => UserConfiguration,
     cliCommand: ScalaCliCommand,
     parseTreesAndPublishDiags: Seq[AbsolutePath] => Future[Unit],
+    limitedImport: List[String],
     val path: AbsolutePath,
     val customWorkspace: Option[AbsolutePath],
 )(implicit ec: ExecutionContextExecutorService)
@@ -202,6 +203,7 @@ class ScalaCli(
         "Scala CLI",
         supportsWrappedSources = Some(true),
         workDoneProgress = workDoneProgress,
+        limitedImport = limitedImport,
       )
 
       val f = futureConn.flatMap { conn =>
