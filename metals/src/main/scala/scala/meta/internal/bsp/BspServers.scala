@@ -77,6 +77,7 @@ final class BspServers(
       bspTraceRoot: AbsolutePath,
       details: BspConnectionDetails,
       bspStatusOpt: Option[ConnectionBspStatus],
+      limitedImport: List[String],
   ): Future[BuildServerConnection] = {
 
     def newConnection(): Future[SocketConnection] = {
@@ -166,6 +167,7 @@ final class BspServers(
       details.getName(),
       bspStatusOpt,
       workDoneProgress = workDoneProgress,
+      limitedImport = limitedImport,
     )
   }
 

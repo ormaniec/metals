@@ -42,6 +42,7 @@ class ScalaCliServers(
     parseTreesAndPublishDiags: Seq[AbsolutePath] => Future[Unit],
     buildTargets: BuildTargets,
     maxServers: Int,
+    limitedImport: List[String],
 )(implicit ec: ExecutionContextExecutorService)
     extends Cancelable {
 
@@ -166,6 +167,7 @@ class ScalaCliServers(
         userConfig,
         cliCommand,
         parseTreesAndPublishDiags,
+        limitedImport,
         path,
         customWorkspace,
       )

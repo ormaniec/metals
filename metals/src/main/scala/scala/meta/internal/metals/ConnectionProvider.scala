@@ -60,6 +60,7 @@ class ConnectionProvider(
     bspStatus: bsp.ConnectionBspStatus,
     mainBuildTargetsData: TargetData,
     indexProviders: IndexProviders,
+    limitedImport: List[String],
 )(implicit ec: ExecutionContextExecutorService, rc: ReportContext)
     extends Indexer(indexProviders)
     with Cancelable {
@@ -106,6 +107,7 @@ class ConnectionProvider(
     () => bspSession.map(_.mainConnection),
     () => connect(new CreateSession(true)).ignoreValue,
     bspStatus,
+    limitedImport,
   )
 
   private val bloopInstall: BloopInstall = new BloopInstall(
